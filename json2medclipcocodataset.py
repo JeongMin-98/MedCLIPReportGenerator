@@ -44,7 +44,7 @@ medclip_embedding_dict = {}
 captions = []
 
 # 배치 처리 설정
-BATCH_SIZE = 32
+BATCH_SIZE = 8
 temp_batch = []
 temp_items = []
 
@@ -54,7 +54,7 @@ for item in tqdm(data, desc="Embedding"):
         continue
 
     try:
-        image = Image.open(image_path).convert("RGB")
+        image = Image.open(image_path).convert("RGB").resize((224,224))
         temp_batch.append(image)
         temp_items.append(item)
 
@@ -62,7 +62,8 @@ for item in tqdm(data, desc="Embedding"):
             # 배치 임베딩
             inputs = medclip_processor(images=temp_batch, return_tensors="pt", padding=True).to(device)
             with torch.no_grad():
-                features = medclip_model.get_image_features(**inputs).cpu().numpy()
+                features = medclip_model.encode_image(pixel_values=inputs["pixel_values"])
+                features = features.cpu().numpy()
 
             for i, item in enumerate(temp_items):
                 patient_id = item["patient_id"]
@@ -85,7 +86,8 @@ for item in tqdm(data, desc="Embedding"):
 if temp_batch:
     inputs = medclip_processor(images=temp_batch, return_tensors="pt", padding=True).to(device)
     with torch.no_grad():
-        features = medclip_model.get_image_features(**inputs).cpu().numpy()
+        features = medclip_model.encode_image(pixel_values=inputs["pixel_values"]).cpu().numpy()
+
 
     for i, item in enumerate(temp_items):
         patient_id = item["patient_id"]
